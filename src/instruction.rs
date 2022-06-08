@@ -1,46 +1,31 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use solana_program::{program_error::ProgramError, msg, borsh::try_from_slice_unchecked};
-use crate::error::IntroError::InstructionUnpackError;
+use borsh::{BorshDeserialize};
+use solana_program::{program_error::ProgramError};
 
-#[derive(BorshSerialize, BorshDeserialize, Debug, Clone)]
-pub enum IntroInstruction {
-    /// Accounts expected:
-    /// 
-    /// 0. `[signer]` User account who is creating the post
-    /// 1. `[writable]` Blog account for which post is being created
-    /// 2. `[writable]` Post account derived from PDA
-    /// 3. `[]` System Program
-    InitMovieRating {
-        title: String,
-        rating: u8,
-        description: String,
-    }
-}
-
-#[derive(BorshDeserialize, Debug)]
-struct PostIxPayload {
+pub enum MovieInstruction {
+  AddMovieReview {
     title: String,
     rating: u8,
-    description: String,
+    description: String
+  }
 }
 
-impl IntroInstruction {
-     /// Unpack inbound buffer to associated Instruction
-    /// The expected format for input is a Borsh serialized vector
-    pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
-        let (variant, rest) = input.split_first().ok_or(InstructionUnpackError)?;
-        msg!("payload");
-        let payload = PostIxPayload::try_from_slice(rest).unwrap();
+#[derive(BorshDeserialize)]
+struct MovieReviewPayload {
+  title: String,
+  rating: u8,
+  description: String
+}
 
-        
+impl MovieInstruction {
+  pub fn unpack(input: &[u8]) -> Result<Self, ProgramError> {
+        let (&variant, rest) = input.split_first().ok_or(ProgramError::InvalidInstructionData)?;
+        let payload = MovieReviewPayload::try_from_slice(rest).unwrap();
         Ok(match variant {
-            0 => Self::InitMovieRating {
+            0 => Self::AddMovieReview { 
                 title: payload.title,
                 rating: payload.rating,
-                description: payload.description
-            },
-            _ => return Err(InstructionUnpackError.into())
+                description: payload.description },
+            _ => return Err(ProgramError::InvalidInstructionData)
         })
-
     }
 }
